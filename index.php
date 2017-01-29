@@ -22,10 +22,20 @@ function loadDict(){
 		echo "{$gap}\n";
 
 		// $_SESSION['dict'] = $dict;
-		$_SESSION['dict'] = json_encode($dict);
+		$_SESSION['dict'] = serialize($dict);
+
+		return $dict;
 	}
 	
-	$dict = json_decode($_SESSION['dict']);
+	$data = preg_replace_callback(
+			    '/(?<=^|\{|;)s:(\d+):\"(.*?)\";(?=[asbdiO]\:\d|N;|\}|$)/s',
+			    function($m){
+			        return 's:' . mb_strlen($m[2]) . ':"' . $m[2] . '";';
+			    },
+			    $_SESSION['dict']
+			);
+
+	$dict = @unserialize($data);
 
 	return $dict;
 };
