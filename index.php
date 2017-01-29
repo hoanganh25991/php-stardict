@@ -7,9 +7,9 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 require 'vendor/autoload.php';
 
-function loadDict(){
+function loadWords(){
 	// $_SESSION = [];
-	if(empty($_SESSION['dict'])){
+	if(empty($_SESSION['words'])){
 		echo "First load\n";
 		// Open dict's info, index and data.
 		$start = time();
@@ -21,28 +21,45 @@ function loadDict(){
 		$gap = time() - $start;
 		echo "{$gap}\n";
 
-		// $_SESSION['dict'] = $dict;
-		$_SESSION['dict'] = serialize($dict);
+		$words = $dict->getIndex()->words;
+		$_SESSION['words'] = $words;
 
-		return $dict;
+		return $words;
 	}
+
+	$words = $_SESSION['words'];
 	
-	$data = preg_replace_callback(
-			    '/(?<=^|\{|;)s:(\d+):\"(.*?)\";(?=[asbdiO]\:\d|N;|\}|$)/s',
-			    function($m){
-			        return 's:' . mb_strlen($m[2]) . ':"' . $m[2] . '";';
-			    },
-			    $_SESSION['dict']
-			);
-
-	$dict = @unserialize($data);
-
-	return $dict;
+	return $words;
 };
 
+function lookup($word){
+	echo "FUCK";
+	$words = loadWords();
+	echo "words loaded";
+    if (substr($word, -1) === '*') {
+        $word = substr($word, 0, -1);
+        $ln = mb_strlen($word);
+        $matched = [];
+        foreach ($words as $w => $data) {
+            if (strncmp($word, $w, $ln) === 0) {
+                $matched[$w] = $data;
+            }
+        }
+        return $matched ? $matched : false;
+    }
+    else if (isset($words[$word])) {
+        return [
+            $word => $words[$word],
+        ];
+    }
+    return false;
+}
+
 $search_term = isset($_GET['search_term']) ?  $_GET['search_term'] : 'hello';
+$result = lookup($search_term);
+var_dump($result);
 
-$dict = loadDict();
-var_dump((object)$dict->lookup($search_term));
+if(!$result)
+	echo "Can not find your search term: {$search_term}"; die;
 
-die;
+var_dump($result); die;
