@@ -7,59 +7,51 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 require 'vendor/autoload.php';
 
-function loadWords(){
+function loadDict(){
 	// $_SESSION = [];
 	if(empty($_SESSION['words'])){
 		echo "First load\n";
 		// Open dict's info, index and data.
-		$start = time();
-		
 		$info = new skoro\stardict\Info('dict/en_vi.ifo');
 		$index = new skoro\stardict\Index($info);
 		$dict = new skoro\stardict\Dict($index);
-		
-		$gap = time() - $start;
-		echo "{$gap}\n";
-
+		// Get out words
 		$words = $dict->getIndex()->words;
+		// Store to session
 		$_SESSION['words'] = $words;
 
-		return $words;
-	}
+		return $dict;
+	}else{
+		// session has words, get out
+		$words = $_SESSION['words'];
+		
+		$info = new skoro\stardict\Info('dict/en_vi.ifo');
+		$index = new skoro\stardict\Index($info, $words);
+		$dict = new skoro\stardict\Dict($index);
 
-	$words = $_SESSION['words'];
-	
-	return $words;
+		return $dict;
+	}
 };
 
-function lookup($word){
-	echo "FUCK";
-	$words = loadWords();
-	echo "words loaded";
-    if (substr($word, -1) === '*') {
-        $word = substr($word, 0, -1);
-        $ln = mb_strlen($word);
-        $matched = [];
-        foreach ($words as $w => $data) {
-            if (strncmp($word, $w, $ln) === 0) {
-                $matched[$w] = $data;
-            }
-        }
-        return $matched ? $matched : false;
-    }
-    else if (isset($words[$word])) {
-        return [
-            $word => $words[$word],
-        ];
-    }
-    return false;
+$search_term = isset($_GET['search_term']) ?  $_GET['search_term'] : 'hello';
+$dict = loadDict();
+
+$result = $dict->lookup($search_term);
+
+if(!$result){
+	echo "Can not find your search term: {$search_term}"; die;
 }
 
-$search_term = isset($_GET['search_term']) ?  $_GET['search_term'] : 'hello';
-$result = lookup($search_term);
-var_dump($result);
-
-if(!$result)
-	echo "Can not find your search term: {$search_term}"; die;
-
-var_dump($result); die;
+// echo "<p>{$result[$search_term]}</p>";
+echo 
+"<style>textarea#styled {
+	/*width: 100%;*/
+	height: 300px;
+    outline: none;
+    resize: none;
+    overflow: auto;
+    white-space: normal;
+	width: 600px;
+}</style>";
+echo "<textarea id='styled'>{$result[$search_term]}</textarea>";
+die;
